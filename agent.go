@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,11 +16,19 @@ import (
 	"github.com/jamespearly/loggly"
 )
 
-func getDataFromAPI() {
+func sendToLoggly(message string) {
+	var tag string
+	tag = "My-Go-Demo"
 
-	var tag string = "application"
-
+	// Instantiate the client
 	client := loggly.New(tag)
+
+	// Valid EchoSend (message echoed to console and no error returned)
+	err := client.EchoSend("info", message)
+	fmt.Println("err:", err)
+}
+
+func getDataFromAPI() {
 
 	url := "http://api.football-data.org/v2/competitions/2021/standings"
 
@@ -38,7 +45,6 @@ func getDataFromAPI() {
 	resp, err := http_client.Do(req)
 
 	if err != nil {
-		client.Send("error", "This is an error message:"+err.Error())
 		log.Fatal(err)
 	}
 
@@ -47,21 +53,16 @@ func getDataFromAPI() {
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		client.Send("error", "This is an error message:"+err.Error())
 		panic(err)
 	}
 	var data types.Data
 	err_ := json.Unmarshal([]byte(body), &data)
 
 	if err_ != nil {
-		client.Send("error", "This is an error message:"+err.Error())
 		panic(err_)
 	}
 
-	// Valid Send (no error returned)
-	output := strconv.Itoa(int(len(body)))
-	err = client.EchoSend("info", "Success! Data size: "+output)
-	fmt.Println("err:", err)
+	sendToLoggly("Success! Data is collected !!! ")
 	createItem(data.Standings[0].Table)
 }
 
@@ -94,6 +95,8 @@ func createItem(table []types.Table) {
 		fmt.Println("[INFO] Uploaded 1 item !!!  ")
 	}
 	fmt.Println("Success")
+	sendToLoggly("Success! Data is stored in DynamoDB !!! ")
+
 }
 
 func main() {
